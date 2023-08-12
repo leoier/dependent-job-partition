@@ -6,12 +6,12 @@ import matplotlib.pyplot as plt
 
 
 class UnionFind:
-    def __init__(self, mask=None):
+    def __init__(self, ignore_source=None):
         self.id = []
         self.sizes = []
         self.dict = {}
         self.num_segments = 0
-        self.mask = mask
+        self.ignore_source = ignore_source
 
 
     def add(self, u):
@@ -40,9 +40,8 @@ class UnionFind:
     def union(self, u, v):
         self.add(u)
         self.add(v)
-        # ignore the edge if it contains the mask
-        if self.mask is not None:
-            if u == self.mask or v == self.mask:
+        # ignore the edge if it starts with the ignore_source
+        if self.ignore_source is not None and u == self.ignore_source:
                 return
         root_u = self.find(u)
         root_v = self.find(v)
@@ -89,16 +88,16 @@ mask = df["job_name"].isin(valid_jobs)
 df = df[mask]
 
 # filter out parent_name not in job_name
-mask = (df["parent_name"] == "olap_page_view_event") | df["parent_name"].isin(set(df["job_name"]))
+mask = (df["parent_name"] == source) | df["parent_name"].isin(set(df["job_name"]))
 df = df[mask]
 
 # segment the jobs that are not connected
-uf = UnionFind(mask="olap_page_view_event")
+uf = UnionFind(ignore_source=source)
 G = nx.DiGraph()
 
 for index, row in df.iterrows():
-    uf.union(row["job_name"], row["parent_name"])
-    G.add_edge(row["job_id"], row["parent_id"])
+    uf.union(row["parent_name"], row["job_name"])
+    G.add_edge(row["parent_id"], row["job_id"])
 
 print(f"Number of segments: {uf.num_segments}")
 
